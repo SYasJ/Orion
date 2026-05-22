@@ -19,7 +19,9 @@ a command palette, and a glassy dark UI built for daily use.
   `Ctrl/Cmd + Shift + Space`; promote any answer into a full conversation.
 - **System tray** — Orion stays resident in the tray; closing a window hides
   it rather than quitting, so Quick Ask is always one hotkey away.
-- **Conversation history** — auto-titled, searchable, persisted locally.
+- **Conversation history** — auto-titled and persisted locally; full-text
+  search across message bodies from the command palette.
+- **Retry & regenerate** — re-run a failed turn or regenerate the last reply.
 - **Command palette** — `Ctrl/Cmd + K` to jump between chats or run actions.
 - **Local models** — run fully offline and private via Ollama, no API key;
   installed models are discovered live from the running Ollama instance.
@@ -113,5 +115,5 @@ available inside the desktop shell.
 
 These are natural next steps to take Orion from MVP to polished product:
 
-- Streaming-aware retry / regenerate for a failed turn.
-- Conversation search across message bodies, not just titles.
+- Editing a sent message and re-running from that point.
+- Pinning or organizing conversations into folders.

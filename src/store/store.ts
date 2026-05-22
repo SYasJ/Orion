@@ -34,6 +34,8 @@ interface OrionStore {
   setConversationSystemPrompt: (prompt: string) => void;
 
   send: (text: string, attachments?: ImageAttachment[]) => Promise<void>;
+  /** Re-runs the active conversation's last assistant turn. */
+  regenerate: () => Promise<void>;
   stop: () => Promise<void>;
   importConversation: (question: string, answer: string) => void;
 
@@ -52,6 +54,41 @@ function deriveTitle(text: string): string {
   const firstLine = text.split("\n")[0].trim();
   if (!firstLine) return "Image analysis";
   return firstLine.length > 48 ? `${firstLine.slice(0, 48)}…` : firstLine;
+}
+
+/** Resolves the model for `conv`, builds the wire history (dropping the
+ *  trailing assistant turn and any failed turns), and starts the stream. */
+async function dispatchStream(
+  conv: Conversation,
+  assistantMsgId: string,
+  streamId: string,
+  defaultModelId: string,
+  defaultSystemPrompt: string,
+  onError: (message: string) => void,
+): Promise<void> {
+  const { model, provider } = resolveModel(conv.modelId ?? defaultModelId);
+  const history = conv.messages
+    .filter((m) => m.id !== assistantMsgId && !m.error)
+    .map((m) => ({
+      role: m.role,
+      content: m.content,
+      images: (m.attachments ?? []).map((a) => ({ mime: a.mime, data: a.data })),
+    }));
+
+  try {
+    await sendMessage({
+      streamId,
+      provider: provider.id,
+      format: provider.format,
+      endpoint: provider.endpoint,
+      requiresKey: !provider.keyless,
+      model: model.apiName,
+      system: conv.systemPrompt ?? defaultSystemPrompt,
+      messages: history,
+    });
+  } catch (e) {
+    onError(e instanceof Error ? e.message : String(e));
+  }
 }
 
 function freshConversation(modelId: string, systemPrompt: string): Conversation {
@@ -174,34 +211,58 @@ export const useStore = create<OrionStore>()(
         }));
 
         const conv = get().conversations.find((c) => c.id === convId)!;
-        const { model, provider } = resolveModel(
-          conv.modelId ?? get().defaultModelId,
+        await dispatchStream(
+          conv,
+          assistantMsg.id,
+          streamId,
+          get().defaultModelId,
+          get().defaultSystemPrompt,
+          (m) => get().failStream(streamId, m),
         );
-        const history = conv.messages
-          .filter((m) => m.id !== assistantMsg.id && !m.error)
-          .map((m) => ({
-            role: m.role,
-            content: m.content,
-            images: (m.attachments ?? []).map((a) => ({
-              mime: a.mime,
-              data: a.data,
-            })),
-          }));
+      },
 
-        try {
-          await sendMessage({
+      regenerate: async () => {
+        if (get().streaming) return;
+        const convId = get().activeId;
+        const conv = get().conversations.find((c) => c.id === convId);
+        if (!conv || conv.messages.length === 0) return;
+        if (conv.messages[conv.messages.length - 1].role !== "assistant") return;
+
+        const now = Date.now();
+        const assistantMsg: Message = {
+          id: crypto.randomUUID(),
+          role: "assistant",
+          content: "",
+          createdAt: now,
+        };
+        const streamId = crypto.randomUUID();
+
+        set((s) => ({
+          conversations: s.conversations.map((c) =>
+            c.id === convId
+              ? {
+                  ...c,
+                  messages: [...c.messages.slice(0, -1), assistantMsg],
+                  updatedAt: now,
+                }
+              : c,
+          ),
+          streaming: {
+            conversationId: convId!,
             streamId,
-            provider: provider.id,
-            format: provider.format,
-            endpoint: provider.endpoint,
-            requiresKey: !provider.keyless,
-            model: model.apiName,
-            system: conv.systemPrompt ?? get().defaultSystemPrompt,
-            messages: history,
-          });
-        } catch (e) {
-          get().failStream(streamId, e instanceof Error ? e.message : String(e));
-        }
+            messageId: assistantMsg.id,
+          },
+        }));
+
+        const updated = get().conversations.find((c) => c.id === convId)!;
+        await dispatchStream(
+          updated,
+          assistantMsg.id,
+          streamId,
+          get().defaultModelId,
+          get().defaultSystemPrompt,
+          (m) => get().failStream(streamId, m),
+        );
       },
 
       stop: async () => {

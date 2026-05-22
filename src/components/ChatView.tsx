@@ -41,11 +41,12 @@ export function ChatView() {
           <EmptyState />
         ) : (
           <div className="messages">
-            {messages.map((m) => (
+            {messages.map((m, i) => (
               <MessageBubble
                 key={m.id}
                 message={m}
                 streaming={streaming?.messageId === m.id}
+                isLast={i === messages.length - 1}
               />
             ))}
           </div>

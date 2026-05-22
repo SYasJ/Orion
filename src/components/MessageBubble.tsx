@@ -1,17 +1,25 @@
 import { memo } from "react";
 import { motion } from "framer-motion";
 import type { Message } from "../types";
+import { useStore } from "../store/store";
 import { Markdown } from "./Markdown";
+import { RefreshIcon } from "./Icons";
 
 interface Props {
   message: Message;
   /** True while this assistant message is actively receiving tokens. */
   streaming: boolean;
+  /** True when this is the last message in the conversation. */
+  isLast: boolean;
 }
 
-function MessageBubbleImpl({ message, streaming }: Props) {
+function MessageBubbleImpl({ message, streaming, isLast }: Props) {
+  const regenerate = useStore((s) => s.regenerate);
+  const anyStreaming = useStore((s) => s.streaming !== null);
   const isUser = message.role === "user";
   const empty = message.content.trim().length === 0;
+  const canRegenerate =
+    !isUser && !anyStreaming && (message.error || isLast);
 
   return (
     <motion.div
@@ -56,6 +64,14 @@ function MessageBubbleImpl({ message, streaming }: Props) {
           <div className="msg-usage" title="Tokens reported by the provider">
             {message.usage.input.toLocaleString()} in ·{" "}
             {message.usage.output.toLocaleString()} out
+          </div>
+        )}
+        {canRegenerate && (
+          <div className="msg-actions">
+            <button className="msg-action" onClick={() => void regenerate()}>
+              <RefreshIcon size={13} />
+              {message.error ? "Retry" : "Regenerate"}
+            </button>
           </div>
         )}
       </div>

@@ -12,8 +12,24 @@ interface Item {
   id: string;
   label: string;
   hint?: string;
+  /** A matched-message snippet, shown under the label. */
+  sub?: string;
   icon: React.ReactNode;
   run: () => void;
+}
+
+/** Builds a short context window around the first match of `q` in `text`. */
+function snippet(text: string, q: string): string {
+  const flat = text.replace(/\s+/g, " ").trim();
+  const idx = flat.toLowerCase().indexOf(q);
+  if (idx < 0) return flat.slice(0, 64);
+  const start = Math.max(0, idx - 24);
+  const end = Math.min(flat.length, idx + q.length + 44);
+  return (
+    (start > 0 ? "…" : "") +
+    flat.slice(start, end) +
+    (end < flat.length ? "…" : "")
+  );
 }
 
 /** Ctrl/Cmd+K launcher: jump to conversations or run app actions. */
@@ -54,24 +70,38 @@ export function CommandPalette({ onClose, onOpenSettings }: Props) {
       },
     ];
 
-    const convItems: Item[] = [...conversations]
-      .sort((a, b) => b.updatedAt - a.updatedAt)
-      .map((c) => ({
-        id: c.id,
-        label: c.title,
-        hint: "Conversation",
-        icon: <MessageIcon size={15} />,
-        run: () => {
-          selectConversation(c.id);
-          onClose();
-        },
-      }));
-
     const q = query.trim().toLowerCase();
-    const all = [...actions, ...convItems];
-    return q
-      ? all.filter((i) => i.label.toLowerCase().includes(q))
-      : all;
+
+    const convItems = [...conversations]
+      .sort((a, b) => b.updatedAt - a.updatedAt)
+      .map<Item | null>((c) => {
+        let sub: string | undefined;
+        if (q && !c.title.toLowerCase().includes(q)) {
+          // Title missed — fall back to searching the message bodies.
+          const hit = c.messages.find((m) =>
+            m.content.toLowerCase().includes(q),
+          );
+          if (!hit) return null;
+          sub = snippet(hit.content, q);
+        }
+        return {
+          id: c.id,
+          label: c.title,
+          hint: "Conversation",
+          sub,
+          icon: <MessageIcon size={15} />,
+          run: () => {
+            selectConversation(c.id);
+            onClose();
+          },
+        };
+      })
+      .filter((i): i is Item => i !== null);
+
+    const visibleActions = q
+      ? actions.filter((i) => i.label.toLowerCase().includes(q))
+      : actions;
+    return [...visibleActions, ...convItems];
   }, [query, conversations, newConversation, selectConversation, onOpenSettings, onClose]);
 
   useEffect(() => {
@@ -107,7 +137,7 @@ export function CommandPalette({ onClose, onOpenSettings }: Props) {
           <input
             ref={inputRef}
             value={query}
-            placeholder="Search conversations or run a command…"
+            placeholder="Search conversations and messages, or run a command…"
             onChange={(e) => setQuery(e.target.value)}
             onKeyDown={onKeyDown}
           />
@@ -124,7 +154,10 @@ export function CommandPalette({ onClose, onOpenSettings }: Props) {
                 onClick={item.run}
               >
                 {item.icon}
-                <span className="pi-label">{item.label}</span>
+                <span className="pi-text">
+                  <span className="pi-label">{item.label}</span>
+                  {item.sub && <span className="pi-sub">{item.sub}</span>}
+                </span>
                 {item.hint && <span className="kbd">{item.hint}</span>}
               </div>
             ))

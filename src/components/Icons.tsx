@@ -133,6 +133,13 @@ export const SlidersIcon = (p: IconProps) => (
   </Base>
 );
 
+export const RefreshIcon = (p: IconProps) => (
+  <Base {...p}>
+    <path d="M21 12a9 9 0 1 1-3-6.7" />
+    <path d="M21 3v5h-5" />
+  </Base>
+);
+
 export const CodeIcon = (p: IconProps) => (
   <Base {...p}>
     <path d="m16 18 6-6-6-6M8 6l-6 6 6 6" />

@@ -909,8 +909,27 @@ textarea {
   background: var(--accent-soft);
   color: var(--text);
 }
-.palette-item .pi-label {
+.palette-item .pi-text {
   flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.palette-item .pi-label {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.palette-item .pi-sub {
+  font-size: 11px;
+  color: var(--text-faint);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.palette-item.active .pi-sub {
+  color: var(--text-dim);
 }
 .palette-empty {
   padding: 26px;
@@ -1367,6 +1386,29 @@ textarea {
   font-variant-numeric: tabular-nums;
   color: var(--text-faint);
   letter-spacing: 0.01em;
+}
+.msg-actions {
+  margin-top: 9px;
+  display: flex;
+  gap: 6px;
+}
+.msg-action {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 11.5px;
+  font-weight: 500;
+  color: var(--text-dim);
+  padding: 4px 10px;
+  border-radius: 7px;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  transition: color 0.13s, border-color 0.13s, background 0.13s;
+}
+.msg-action:hover {
+  color: var(--text);
+  border-color: var(--border-strong);
+  background: var(--surface-hover);
 }
 
 /* utility */
