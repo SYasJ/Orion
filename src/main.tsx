@@ -15,6 +15,9 @@ if (IS_TAURI) {
   } catch {
     isQuickAsk = false;
   }
+} else if (import.meta.env.DEV) {
+  // Dev convenience: preview the Quick Ask overlay in a browser.
+  isQuickAsk = new URLSearchParams(window.location.search).has("quickask");
 }
 
 ReactDOM.createRoot(document.getElementById("root") as HTMLElement).render(
