@@ -17,6 +17,8 @@ a command palette, and a glassy dark UI built for daily use.
   Gemini, Qwen-VL) for visual analysis.
 - **Quick Ask overlay** — summon Orion from anywhere with
   `Ctrl/Cmd + Shift + Space`; promote any answer into a full conversation.
+- **System tray** — Orion stays resident in the tray; closing a window hides
+  it rather than quitting, so Quick Ask is always one hotkey away.
 - **Conversation history** — auto-titled, searchable, persisted locally.
 - **Command palette** — `Ctrl/Cmd + K` to jump between chats or run actions.
 - **Markdown + code** — full markdown rendering with syntax highlighting.
@@ -110,4 +112,3 @@ These are natural next steps to take Orion from MVP to polished product:
 - Per-conversation model + system prompt overrides.
 - Token/cost usage display.
 - Conversation export (Markdown / JSON).
-- System tray icon so Orion stays resident for Quick Ask.
