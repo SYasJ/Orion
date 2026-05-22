@@ -65,7 +65,7 @@ export function SettingsPanel({ onClose }: Props) {
             locally on this device.
           </p>
 
-          {PROVIDERS.map((p) => (
+          {PROVIDERS.filter((p) => !p.keyless).map((p) => (
             <div className="field" key={p.id}>
               <label>
                 {p.label}
@@ -91,6 +91,11 @@ export function SettingsPanel({ onClose }: Props) {
               <span className="hint">{p.note}</span>
             </div>
           ))}
+
+          <span className="hint">
+            Local providers like Ollama need no key — just install Ollama and
+            run <code>ollama pull &lt;model&gt;</code>.
+          </span>
 
           <div className="settings-section-label">Behavior</div>
           <div className="field">

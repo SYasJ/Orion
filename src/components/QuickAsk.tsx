@@ -1,7 +1,4 @@
 import { useEffect, useRef, useState } from "react";
-import ReactMarkdown from "react-markdown";
-import remarkGfm from "remark-gfm";
-import rehypeHighlight from "rehype-highlight";
 import { getCurrentWindow } from "@tauri-apps/api/window";
 import { LogicalSize } from "@tauri-apps/api/dpi";
 import { WebviewWindow } from "@tauri-apps/api/webviewWindow";
@@ -18,6 +15,7 @@ import {
   sendMessage,
 } from "../lib/bridge";
 import { ArrowRightIcon, SparkleIcon, StopIcon } from "./Icons";
+import { Markdown } from "./Markdown";
 
 /**
  * The Quick Ask overlay — a compact, always-ready window summoned with
@@ -113,6 +111,7 @@ export function QuickAsk() {
         provider: provider.id,
         format: provider.format,
         endpoint: provider.endpoint,
+        requiresKey: !provider.keyless,
         model: model.apiName,
         system: useStore.getState().systemPrompt,
         messages: [{ role: "user", content: q, images: [] }],
@@ -182,7 +181,7 @@ export function QuickAsk() {
       {expanded && (
         <div className="qa-panel">
           <div className="qa-question">{question}</div>
-          <div className={`qa-answer ${errored ? "error" : ""}`}>
+          <div className={`qa-answer msg-content ${errored ? "error" : ""}`}>
             {answer.length === 0 && busy ? (
               <div className="thinking">
                 <span />
@@ -190,12 +189,7 @@ export function QuickAsk() {
                 <span />
               </div>
             ) : (
-              <ReactMarkdown
-                remarkPlugins={[remarkGfm]}
-                rehypePlugins={[rehypeHighlight]}
-              >
-                {answer}
-              </ReactMarkdown>
+              <Markdown>{answer}</Markdown>
             )}
           </div>
           <div className="qa-actions">

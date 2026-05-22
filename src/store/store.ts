@@ -151,6 +151,7 @@ export const useStore = create<OrionStore>()(
             provider: provider.id,
             format: provider.format,
             endpoint: provider.endpoint,
+            requiresKey: !provider.keyless,
             model: model.apiName,
             system: get().systemPrompt,
             messages: history,

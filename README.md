@@ -21,7 +21,8 @@ a command palette, and a glassy dark UI built for daily use.
   it rather than quitting, so Quick Ask is always one hotkey away.
 - **Conversation history** — auto-titled, searchable, persisted locally.
 - **Command palette** — `Ctrl/Cmd + K` to jump between chats or run actions.
-- **Markdown + code** — full markdown rendering with syntax highlighting.
+- **Local models** — run fully offline and private via Ollama, no API key.
+- **Markdown + code** — syntax highlighting with per-block copy buttons.
 - **System prompt** — customize Orion's behavior globally.
 - **Frameless, glassy UI** — custom title bar, aurora accents, smooth motion.
 
@@ -35,6 +36,7 @@ a command palette, and a glassy dark UI built for daily use.
 | OpenRouter        | `openai`     | DeepSeek V3, Llama 3.3, Qwen2.5-VL      |
 | Moonshot · Kimi   | `openai`     | Kimi K2, Moonshot v1 128K               |
 | Alibaba · Qwen    | `openai`     | Qwen Max / Plus / VL Max                |
+| Ollama (local)    | `openai`     | Llama 3.2, Qwen 2.5, DeepSeek R1, LLaVA |
 
 Most providers are OpenAI-compatible, so adding one is a single entry in
 `src/lib/providers.ts` plus its models in `src/lib/models.ts`. Gemini and
@@ -107,8 +109,7 @@ available inside the desktop shell.
 
 These are natural next steps to take Orion from MVP to polished product:
 
-- Local model support via Ollama.
-- Per-code-block copy buttons.
+- Live Ollama model discovery (list installed models via `/api/tags`).
 - Per-conversation model + system prompt overrides.
 - Token/cost usage display.
 - Conversation export (Markdown / JSON).

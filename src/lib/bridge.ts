@@ -25,6 +25,8 @@ export interface SendArgs {
   format: string;
   /** Endpoint URL (chat completions, or API base for Gemini). */
   endpoint: string;
+  /** False for local providers (Ollama) that need no API key. */
+  requiresKey: boolean;
   model: string;
   system: string;
   messages: ChatMessageDTO[];
@@ -62,6 +64,7 @@ export async function sendMessage(args: SendArgs): Promise<void> {
       provider: args.provider,
       format: args.format,
       endpoint: args.endpoint,
+      requiresKey: args.requiresKey,
       model: args.model,
       system: args.system,
       messages: args.messages,

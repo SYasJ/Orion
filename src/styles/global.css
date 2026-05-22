@@ -536,6 +536,39 @@ textarea {
   margin: 14px 0;
 }
 
+/* fenced code block with copy button */
+.codeblock {
+  position: relative;
+  margin: 0 0 12px;
+}
+.codeblock pre {
+  margin: 0;
+}
+.copy-btn {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 11px;
+  font-weight: 550;
+  padding: 4px 9px;
+  border-radius: 6px;
+  background: var(--surface-strong);
+  border: 1px solid var(--border);
+  color: var(--text-dim);
+  opacity: 0;
+  transition: opacity 0.13s, background 0.13s, color 0.13s;
+}
+.codeblock:hover .copy-btn {
+  opacity: 1;
+}
+.copy-btn:hover {
+  background: var(--accent-soft);
+  color: var(--text);
+}
+
 /* blinking caret while a message streams */
 .caret {
   display: inline-block;

@@ -136,6 +136,37 @@ export const MODELS: ModelDef[] = [
     blurb: "Vision-language analysis",
     vision: true,
   },
+
+  // ---- Ollama (local) — require `ollama pull <model>` first ----
+  {
+    id: "ollama-llama3.2",
+    label: "Llama 3.2",
+    providerId: "ollama",
+    apiName: "llama3.2",
+    blurb: "Local — run `ollama pull llama3.2`",
+  },
+  {
+    id: "ollama-qwen2.5",
+    label: "Qwen 2.5",
+    providerId: "ollama",
+    apiName: "qwen2.5",
+    blurb: "Local — run `ollama pull qwen2.5`",
+  },
+  {
+    id: "ollama-deepseek-r1",
+    label: "DeepSeek R1",
+    providerId: "ollama",
+    apiName: "deepseek-r1",
+    blurb: "Local reasoning — `ollama pull deepseek-r1`",
+  },
+  {
+    id: "ollama-llava",
+    label: "LLaVA",
+    providerId: "ollama",
+    apiName: "llava",
+    blurb: "Local vision — `ollama pull llava`",
+    vision: true,
+  },
 ];
 
 export const DEFAULT_MODEL_ID = "claude-sonnet-4-6";

@@ -61,6 +61,16 @@ export const PROVIDERS: ProviderDef[] = [
     keyUrl: "https://bailian.console.alibabacloud.com/",
     note: "Qwen — incl. vision-language models",
   },
+  {
+    id: "ollama",
+    label: "Ollama · Local",
+    format: "openai",
+    endpoint: "http://localhost:11434/v1/chat/completions",
+    keyless: true,
+    keyPlaceholder: "",
+    keyUrl: "https://ollama.com/download",
+    note: "Runs models locally — no API key, fully private",
+  },
 ];
 
 export function getProvider(id: string): ProviderDef {

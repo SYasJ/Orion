@@ -35,6 +35,9 @@ pub struct ChatRequest {
     pub format: String,
     /// Endpoint URL (chat completions, or API base for Gemini).
     pub endpoint: String,
+    /// False for local providers (e.g. Ollama) that need no API key.
+    #[serde(default = "default_true")]
+    pub requires_key: bool,
     pub model: String,
     #[serde(default)]
     pub system: Option<String>,
@@ -45,6 +48,10 @@ pub struct ChatRequest {
 
 fn default_max_tokens() -> u32 {
     4096
+}
+
+fn default_true() -> bool {
+    true
 }
 
 #[derive(Clone, Serialize)]

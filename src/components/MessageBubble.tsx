@@ -1,9 +1,7 @@
 import { memo } from "react";
 import { motion } from "framer-motion";
-import ReactMarkdown from "react-markdown";
-import remarkGfm from "remark-gfm";
-import rehypeHighlight from "rehype-highlight";
 import type { Message } from "../types";
+import { Markdown } from "./Markdown";
 
 interface Props {
   message: Message;
@@ -49,12 +47,7 @@ function MessageBubbleImpl({ message, streaming }: Props) {
             </div>
           ) : (
             <>
-              <ReactMarkdown
-                remarkPlugins={[remarkGfm]}
-                rehypePlugins={[rehypeHighlight]}
-              >
-                {message.content}
-              </ReactMarkdown>
+              <Markdown>{message.content}</Markdown>
               {streaming && !empty && <span className="caret" />}
             </>
           )}

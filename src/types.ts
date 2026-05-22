@@ -37,6 +37,8 @@ export interface ProviderDef {
   format: ApiFormat;
   /** Full chat endpoint URL, or API base for Gemini. */
   endpoint: string;
+  /** True for local providers that need no API key (e.g. Ollama). */
+  keyless?: boolean;
   keyPlaceholder: string;
   keyUrl: string;
   note: string;

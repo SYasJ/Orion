@@ -28,13 +28,14 @@ pub async fn stream_chat(
         .keys
         .get(&request.provider)
         .map(|k| k.trim())
-        .filter(|k| !k.is_empty())
-        .ok_or_else(|| {
-            format!(
-                "No API key configured for '{}'. Open Settings to add one.",
-                request.provider
-            )
-        })?;
+        .filter(|k| !k.is_empty());
+
+    if request.requires_key && key.is_none() {
+        return Err(format!(
+            "No API key configured for '{}'. Open Settings to add one.",
+            request.provider
+        ));
+    }
 
     let client = reqwest::Client::new();
     let format = request.format.as_str();
@@ -42,7 +43,7 @@ pub async fn stream_chat(
     let builder = match format {
         "anthropic" => client
             .post(&request.endpoint)
-            .header("x-api-key", key)
+            .header("x-api-key", key.unwrap_or_default())
             .header("anthropic-version", "2023-06-01")
             .header("content-type", "application/json")
             .json(&anthropic_body(request)),
@@ -54,18 +55,24 @@ pub async fn stream_chat(
             );
             client
                 .post(url)
-                .header("x-goog-api-key", key)
+                .header("x-goog-api-key", key.unwrap_or_default())
                 .header("content-type", "application/json")
                 .json(&gemini_body(request))
         }
-        "openai" => client
-            .post(&request.endpoint)
-            .header("authorization", format!("Bearer {key}"))
-            .header("content-type", "application/json")
-            // Recommended by OpenRouter; harmless for other OpenAI-compatible APIs.
-            .header("http-referer", "https://orion.app")
-            .header("x-title", "Orion")
-            .json(&openai_body(request)),
+        "openai" => {
+            let mut rb = client
+                .post(&request.endpoint)
+                .header("content-type", "application/json")
+                // Recommended by OpenRouter; harmless for other OpenAI-compatible APIs.
+                .header("http-referer", "https://orion.app")
+                .header("x-title", "Orion")
+                .json(&openai_body(request));
+            // Local providers (Ollama) accept requests with no auth header.
+            if let Some(k) = key {
+                rb = rb.header("authorization", format!("Bearer {k}"));
+            }
+            rb
+        }
         other => return Err(format!("Unknown API format: {other}")),
     };
 
