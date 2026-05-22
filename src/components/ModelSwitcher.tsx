@@ -1,11 +1,9 @@
 import { useEffect, useRef, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useStore } from "../store/store";
-import { MODELS, PROVIDER_LABEL, getModel } from "../lib/models";
-import type { ProviderId } from "../types";
+import { MODELS, getModel } from "../lib/models";
+import { PROVIDERS } from "../lib/providers";
 import { CheckIcon, ChevronDownIcon } from "./Icons";
-
-const PROVIDER_ORDER: ProviderId[] = ["anthropic", "openai"];
 
 /** Dropdown for picking the active model, grouped by provider. */
 export function ModelSwitcher() {
@@ -41,27 +39,34 @@ export function ModelSwitcher() {
             exit={{ opacity: 0, y: -6, scale: 0.97 }}
             transition={{ duration: 0.13, ease: "easeOut" }}
           >
-            {PROVIDER_ORDER.map((provider) => (
-              <div key={provider}>
-                <div className="model-group-label">{PROVIDER_LABEL[provider]}</div>
-                {MODELS.filter((m) => m.provider === provider).map((m) => (
-                  <button
-                    key={m.id}
-                    className={`model-option ${m.id === modelId ? "active" : ""}`}
-                    onClick={() => {
-                      setModel(m.id);
-                      setOpen(false);
-                    }}
-                  >
-                    <div className="model-option-text">
-                      <div className="model-option-label">{m.label}</div>
-                      <div className="model-option-blurb">{m.blurb}</div>
-                    </div>
-                    {m.id === modelId && <CheckIcon size={15} />}
-                  </button>
-                ))}
-              </div>
-            ))}
+            {PROVIDERS.map((provider) => {
+              const models = MODELS.filter((m) => m.providerId === provider.id);
+              if (models.length === 0) return null;
+              return (
+                <div key={provider.id}>
+                  <div className="model-group-label">{provider.label}</div>
+                  {models.map((m) => (
+                    <button
+                      key={m.id}
+                      className={`model-option ${m.id === modelId ? "active" : ""}`}
+                      onClick={() => {
+                        setModel(m.id);
+                        setOpen(false);
+                      }}
+                    >
+                      <div className="model-option-text">
+                        <div className="model-option-label">
+                          {m.label}
+                          {m.vision && <span className="vision-tag">vision</span>}
+                        </div>
+                        <div className="model-option-blurb">{m.blurb}</div>
+                      </div>
+                      {m.id === modelId && <CheckIcon size={15} />}
+                    </button>
+                  ))}
+                </div>
+              );
+            })}
           </motion.div>
         )}
       </AnimatePresence>

@@ -1,34 +1,32 @@
 import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
+import { open as openUrl } from "@tauri-apps/plugin-shell";
 import { useStore } from "../store/store";
 import { IS_TAURI, getSettings, setSettings } from "../lib/bridge";
+import { PROVIDERS } from "../lib/providers";
 import { CloseIcon } from "./Icons";
 
 interface Props {
   onClose: () => void;
 }
 
-/** Modal for API keys and the global system prompt. */
+/** Modal for per-provider API keys and the global system prompt. */
 export function SettingsPanel({ onClose }: Props) {
   const systemPrompt = useStore((s) => s.systemPrompt);
   const setSystemPrompt = useStore((s) => s.setSystemPrompt);
 
-  const [anthropicKey, setAnthropicKey] = useState("");
-  const [openaiKey, setOpenaiKey] = useState("");
+  const [keys, setKeys] = useState<Record<string, string>>({});
   const [prompt, setPrompt] = useState(systemPrompt);
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
-    getSettings().then((s) => {
-      setAnthropicKey(s.anthropicApiKey);
-      setOpenaiKey(s.openaiApiKey);
-    });
+    getSettings().then((s) => setKeys(s.keys ?? {}));
   }, []);
 
   const save = async () => {
     setSaving(true);
     try {
-      await setSettings({ anthropicApiKey: anthropicKey, openaiApiKey: openaiKey });
+      await setSettings({ keys });
       setSystemPrompt(prompt);
       onClose();
     } finally {
@@ -54,41 +52,47 @@ export function SettingsPanel({ onClose }: Props) {
 
         <div className="modal-body">
           {!IS_TAURI && (
-            <div className="field">
-              <span className="hint">
-                Running in a browser — API keys won't be saved and chat is
-                disabled. Launch the desktop app with{" "}
-                <code>npm run tauri:dev</code>.
-              </span>
-            </div>
+            <span className="hint">
+              Running in a browser — API keys won't be saved and chat is
+              disabled. Launch the desktop app with{" "}
+              <code>npm run tauri:dev</code>.
+            </span>
           )}
 
-          <div className="field">
-            <label>Anthropic API key</label>
-            <input
-              type="password"
-              value={anthropicKey}
-              placeholder="sk-ant-…"
-              onChange={(e) => setAnthropicKey(e.target.value)}
-              autoComplete="off"
-              spellCheck={false}
-            />
-            <span className="hint">Used for Claude models. Stored locally on this device.</span>
-          </div>
+          <div className="settings-section-label">API keys</div>
+          <p className="hint" style={{ marginTop: -8 }}>
+            Add a key only for the providers you want to use. Keys are stored
+            locally on this device.
+          </p>
 
-          <div className="field">
-            <label>OpenAI API key</label>
-            <input
-              type="password"
-              value={openaiKey}
-              placeholder="sk-…"
-              onChange={(e) => setOpenaiKey(e.target.value)}
-              autoComplete="off"
-              spellCheck={false}
-            />
-            <span className="hint">Used for GPT models. Stored locally on this device.</span>
-          </div>
+          {PROVIDERS.map((p) => (
+            <div className="field" key={p.id}>
+              <label>
+                {p.label}
+                <button
+                  className="key-link"
+                  onClick={() => {
+                    if (IS_TAURI) void openUrl(p.keyUrl);
+                  }}
+                >
+                  get a key ↗
+                </button>
+              </label>
+              <input
+                type="password"
+                value={keys[p.id] ?? ""}
+                placeholder={p.keyPlaceholder}
+                onChange={(e) =>
+                  setKeys((k) => ({ ...k, [p.id]: e.target.value }))
+                }
+                autoComplete="off"
+                spellCheck={false}
+              />
+              <span className="hint">{p.note}</span>
+            </div>
+          ))}
 
+          <div className="settings-section-label">Behavior</div>
           <div className="field">
             <label>System prompt</label>
             <textarea
@@ -96,7 +100,9 @@ export function SettingsPanel({ onClose }: Props) {
               onChange={(e) => setPrompt(e.target.value)}
               spellCheck={false}
             />
-            <span className="hint">Sets Orion's behavior for every conversation.</span>
+            <span className="hint">
+              Sets Orion's behavior for every conversation.
+            </span>
           </div>
         </div>
 

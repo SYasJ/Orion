@@ -1,7 +1,7 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
-import type { Conversation, Message } from "../types";
-import { DEFAULT_MODEL_ID, getModel } from "../lib/models";
+import type { Conversation, ImageAttachment, Message } from "../types";
+import { DEFAULT_MODEL_ID, resolveModel } from "../lib/models";
 import { cancelStream, sendMessage } from "../lib/bridge";
 
 interface StreamState {
@@ -24,8 +24,9 @@ interface OrionStore {
   setModel: (id: string) => void;
   setSystemPrompt: (prompt: string) => void;
 
-  send: (text: string) => Promise<void>;
+  send: (text: string, attachments?: ImageAttachment[]) => Promise<void>;
   stop: () => Promise<void>;
+  importConversation: (question: string, answer: string) => void;
 
   // Internal — invoked by the global stream-event listeners.
   pushDelta: (streamId: string, delta: string) => void;
@@ -39,7 +40,8 @@ const DEFAULT_SYSTEM_PROMPT =
 
 function deriveTitle(text: string): string {
   const firstLine = text.split("\n")[0].trim();
-  return firstLine.length > 48 ? `${firstLine.slice(0, 48)}…` : firstLine || "New chat";
+  if (!firstLine) return "Image analysis";
+  return firstLine.length > 48 ? `${firstLine.slice(0, 48)}…` : firstLine;
 }
 
 function freshConversation(): Conversation {
@@ -91,9 +93,10 @@ export const useStore = create<OrionStore>()(
       setModel: (id) => set({ modelId: id }),
       setSystemPrompt: (prompt) => set({ systemPrompt: prompt }),
 
-      send: async (raw) => {
+      send: async (raw, attachments) => {
         const text = raw.trim();
-        if (!text || get().streaming) return;
+        const images = attachments ?? [];
+        if ((!text && images.length === 0) || get().streaming) return;
 
         let convId = get().activeId;
         if (!convId || !get().conversations.some((c) => c.id === convId)) {
@@ -105,6 +108,7 @@ export const useStore = create<OrionStore>()(
           id: crypto.randomUUID(),
           role: "user",
           content: text,
+          attachments: images.length > 0 ? images : undefined,
           createdAt: now,
         };
         const assistantMsg: Message = {
@@ -129,15 +133,24 @@ export const useStore = create<OrionStore>()(
         }));
 
         const conv = get().conversations.find((c) => c.id === convId)!;
-        const model = getModel(get().modelId);
+        const { model, provider } = resolveModel(get().modelId);
         const history = conv.messages
           .filter((m) => m.id !== assistantMsg.id && !m.error)
-          .map((m) => ({ role: m.role, content: m.content }));
+          .map((m) => ({
+            role: m.role,
+            content: m.content,
+            images: (m.attachments ?? []).map((a) => ({
+              mime: a.mime,
+              data: a.data,
+            })),
+          }));
 
         try {
           await sendMessage({
             streamId,
-            provider: model.provider,
+            provider: provider.id,
+            format: provider.format,
+            endpoint: provider.endpoint,
             model: model.apiName,
             system: get().systemPrompt,
             messages: history,
@@ -152,6 +165,34 @@ export const useStore = create<OrionStore>()(
         if (!stream) return;
         await cancelStream(stream.streamId);
         get().endStream(stream.streamId);
+      },
+
+      importConversation: (question, answer) => {
+        const now = Date.now();
+        const conv: Conversation = {
+          id: crypto.randomUUID(),
+          title: deriveTitle(question),
+          messages: [
+            {
+              id: crypto.randomUUID(),
+              role: "user",
+              content: question,
+              createdAt: now,
+            },
+            {
+              id: crypto.randomUUID(),
+              role: "assistant",
+              content: answer,
+              createdAt: now + 1,
+            },
+          ],
+          createdAt: now,
+          updatedAt: now,
+        };
+        set((s) => ({
+          conversations: [conv, ...s.conversations],
+          activeId: conv.id,
+        }));
       },
 
       pushDelta: (streamId, delta) => {

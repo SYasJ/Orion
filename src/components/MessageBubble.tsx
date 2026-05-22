@@ -27,6 +27,17 @@ function MessageBubbleImpl({ message, streaming }: Props) {
       </div>
       <div className="msg-body">
         <div className="msg-role">{isUser ? "You" : "Orion"}</div>
+        {message.attachments && message.attachments.length > 0 && (
+          <div className="msg-images">
+            {message.attachments.map((a) => (
+              <img
+                key={a.id}
+                src={`data:${a.mime};base64,${a.data}`}
+                alt={a.name}
+              />
+            ))}
+          </div>
+        )}
         <div className={`msg-content ${message.error ? "error" : ""}`}>
           {isUser ? (
             <div style={{ whiteSpace: "pre-wrap" }}>{message.content}</div>

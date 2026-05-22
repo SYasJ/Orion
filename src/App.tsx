@@ -6,7 +6,7 @@ import { ChatView } from "./components/ChatView";
 import { CommandPalette } from "./components/CommandPalette";
 import { SettingsPanel } from "./components/SettingsPanel";
 import { useStore } from "./store/store";
-import { onChunk, onDone, onError } from "./lib/bridge";
+import { onChunk, onDone, onError, onPromote } from "./lib/bridge";
 
 export default function App() {
   const [paletteOpen, setPaletteOpen] = useState(false);
@@ -15,8 +15,9 @@ export default function App() {
   const pushDelta = useStore((s) => s.pushDelta);
   const endStream = useStore((s) => s.endStream);
   const failStream = useStore((s) => s.failStream);
+  const importConversation = useStore((s) => s.importConversation);
 
-  // Bridge Rust stream events into the store.
+  // Bridge Rust stream events into the store, plus Quick Ask promotions.
   useEffect(() => {
     let active = true;
     const handles: UnlistenFn[] = [];
@@ -24,6 +25,7 @@ export default function App() {
       onChunk((e) => pushDelta(e.id, e.delta)),
       onDone((e) => endStream(e.id)),
       onError((e) => failStream(e.id, e.message)),
+      onPromote((e) => importConversation(e.question, e.answer)),
     ]).then((fns) => {
       if (active) handles.push(...fns);
       else fns.forEach((f) => f());
@@ -32,7 +34,7 @@ export default function App() {
       active = false;
       handles.forEach((f) => f());
     };
-  }, [pushDelta, endStream, failStream]);
+  }, [pushDelta, endStream, failStream, importConversation]);
 
   // Global shortcuts.
   useEffect(() => {

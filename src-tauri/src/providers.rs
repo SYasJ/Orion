@@ -6,7 +6,7 @@ use serde::Serialize;
 use serde_json::{json, Value};
 use tauri::{AppHandle, Emitter};
 
-use crate::chat::ChatRequest;
+use crate::chat::{ChatMessage, ChatRequest};
 use crate::settings::Settings;
 
 #[derive(Clone, Serialize)]
@@ -24,34 +24,55 @@ pub async fn stream_chat(
     request: &ChatRequest,
     cancel: Arc<AtomicBool>,
 ) -> Result<(), String> {
-    let provider = request.provider.as_str();
-    let client = reqwest::Client::new();
+    let key = settings
+        .keys
+        .get(&request.provider)
+        .map(|k| k.trim())
+        .filter(|k| !k.is_empty())
+        .ok_or_else(|| {
+            format!(
+                "No API key configured for '{}'. Open Settings to add one.",
+                request.provider
+            )
+        })?;
 
-    let response = match provider {
-        "anthropic" => {
-            let key = require_key(&settings.anthropic_api_key, "Anthropic")?;
+    let client = reqwest::Client::new();
+    let format = request.format.as_str();
+
+    let builder = match format {
+        "anthropic" => client
+            .post(&request.endpoint)
+            .header("x-api-key", key)
+            .header("anthropic-version", "2023-06-01")
+            .header("content-type", "application/json")
+            .json(&anthropic_body(request)),
+        "gemini" => {
+            let url = format!(
+                "{}/models/{}:streamGenerateContent?alt=sse",
+                request.endpoint.trim_end_matches('/'),
+                request.model
+            );
             client
-                .post("https://api.anthropic.com/v1/messages")
-                .header("x-api-key", key)
-                .header("anthropic-version", "2023-06-01")
+                .post(url)
+                .header("x-goog-api-key", key)
                 .header("content-type", "application/json")
-                .json(&anthropic_body(request))
-                .send()
-                .await
+                .json(&gemini_body(request))
         }
-        "openai" => {
-            let key = require_key(&settings.openai_api_key, "OpenAI")?;
-            client
-                .post("https://api.openai.com/v1/chat/completions")
-                .header("authorization", format!("Bearer {key}"))
-                .header("content-type", "application/json")
-                .json(&openai_body(request))
-                .send()
-                .await
-        }
-        other => return Err(format!("Unknown provider: {other}")),
-    }
-    .map_err(|e| format!("Request failed: {e}"))?;
+        "openai" => client
+            .post(&request.endpoint)
+            .header("authorization", format!("Bearer {key}"))
+            .header("content-type", "application/json")
+            // Recommended by OpenRouter; harmless for other OpenAI-compatible APIs.
+            .header("http-referer", "https://orion.app")
+            .header("x-title", "Orion")
+            .json(&openai_body(request)),
+        other => return Err(format!("Unknown API format: {other}")),
+    };
+
+    let response = builder
+        .send()
+        .await
+        .map_err(|e| format!("Request failed: {e}"))?;
 
     if !response.status().is_success() {
         let status = response.status();
@@ -86,7 +107,7 @@ pub async fn stream_chat(
                 return Ok(());
             }
             if let Ok(value) = serde_json::from_str::<Value>(data) {
-                if let Some(delta) = extract_delta(provider, &value) {
+                if let Some(delta) = extract_delta(format, &value) {
                     if !delta.is_empty() {
                         let _ = app.emit(
                             "stream://chunk",
@@ -104,21 +125,37 @@ pub async fn stream_chat(
     Ok(())
 }
 
-fn require_key<'a>(key: &'a str, label: &str) -> Result<&'a str, String> {
-    if key.trim().is_empty() {
-        Err(format!(
-            "No {label} API key configured. Open Settings to add one."
-        ))
-    } else {
-        Ok(key.trim())
+// ---- request bodies ------------------------------------------------------
+
+fn anthropic_content(m: &ChatMessage) -> Value {
+    if m.images.is_empty() {
+        return json!(m.content);
     }
+    let mut parts: Vec<Value> = m
+        .images
+        .iter()
+        .map(|img| {
+            json!({
+                "type": "image",
+                "source": {
+                    "type": "base64",
+                    "media_type": img.mime,
+                    "data": img.data,
+                },
+            })
+        })
+        .collect();
+    if !m.content.is_empty() {
+        parts.push(json!({ "type": "text", "text": m.content }));
+    }
+    json!(parts)
 }
 
 fn anthropic_body(request: &ChatRequest) -> Value {
     let messages: Vec<Value> = request
         .messages
         .iter()
-        .map(|m| json!({ "role": m.role, "content": m.content }))
+        .map(|m| json!({ "role": m.role, "content": anthropic_content(m) }))
         .collect();
 
     let mut body = json!({
@@ -127,13 +164,29 @@ fn anthropic_body(request: &ChatRequest) -> Value {
         "stream": true,
         "messages": messages,
     });
-
     if let Some(system) = request.system.as_deref() {
         if !system.trim().is_empty() {
             body["system"] = json!(system);
         }
     }
     body
+}
+
+fn openai_content(m: &ChatMessage) -> Value {
+    if m.images.is_empty() {
+        return json!(m.content);
+    }
+    let mut parts: Vec<Value> = Vec::new();
+    if !m.content.is_empty() {
+        parts.push(json!({ "type": "text", "text": m.content }));
+    }
+    for img in &m.images {
+        parts.push(json!({
+            "type": "image_url",
+            "image_url": { "url": format!("data:{};base64,{}", img.mime, img.data) },
+        }));
+    }
+    json!(parts)
 }
 
 fn openai_body(request: &ChatRequest) -> Value {
@@ -144,9 +197,8 @@ fn openai_body(request: &ChatRequest) -> Value {
         }
     }
     for m in &request.messages {
-        messages.push(json!({ "role": m.role, "content": m.content }));
+        messages.push(json!({ "role": m.role, "content": openai_content(m) }));
     }
-
     json!({
         "model": request.model,
         "stream": true,
@@ -154,9 +206,49 @@ fn openai_body(request: &ChatRequest) -> Value {
     })
 }
 
+fn gemini_parts(m: &ChatMessage) -> Vec<Value> {
+    let mut parts: Vec<Value> = Vec::new();
+    if !m.content.is_empty() {
+        parts.push(json!({ "text": m.content }));
+    }
+    for img in &m.images {
+        parts.push(json!({
+            "inline_data": { "mime_type": img.mime, "data": img.data },
+        }));
+    }
+    if parts.is_empty() {
+        parts.push(json!({ "text": "" }));
+    }
+    parts
+}
+
+fn gemini_body(request: &ChatRequest) -> Value {
+    let contents: Vec<Value> = request
+        .messages
+        .iter()
+        .map(|m| {
+            let role = if m.role == "assistant" { "model" } else { "user" };
+            json!({ "role": role, "parts": gemini_parts(m) })
+        })
+        .collect();
+
+    let mut body = json!({
+        "contents": contents,
+        "generationConfig": { "maxOutputTokens": request.max_tokens },
+    });
+    if let Some(system) = request.system.as_deref() {
+        if !system.trim().is_empty() {
+            body["systemInstruction"] = json!({ "parts": [{ "text": system }] });
+        }
+    }
+    body
+}
+
+// ---- response parsing ----------------------------------------------------
+
 /// Extracts the incremental text from a single SSE data object.
-fn extract_delta(provider: &str, value: &Value) -> Option<String> {
-    match provider {
+fn extract_delta(format: &str, value: &Value) -> Option<String> {
+    match format {
         "anthropic" => {
             if value.get("type")?.as_str()? == "content_block_delta" {
                 Some(value.get("delta")?.get("text")?.as_str()?.to_string())
@@ -164,6 +256,24 @@ fn extract_delta(provider: &str, value: &Value) -> Option<String> {
                 None
             }
         }
+        "gemini" => {
+            let parts = value
+                .get("candidates")?
+                .get(0)?
+                .get("content")?
+                .get("parts")?
+                .as_array()?;
+            let text: String = parts
+                .iter()
+                .filter_map(|p| p.get("text").and_then(|t| t.as_str()))
+                .collect();
+            if text.is_empty() {
+                None
+            } else {
+                Some(text)
+            }
+        }
+        // openai and OpenAI-compatible providers
         _ => Some(
             value
                 .get("choices")?
@@ -178,19 +288,28 @@ fn extract_delta(provider: &str, value: &Value) -> Option<String> {
 
 /// Pulls a human-readable message out of a provider error response body.
 fn summarize_error(body: &str) -> String {
-    serde_json::from_str::<Value>(body)
-        .ok()
-        .and_then(|v| {
-            v.get("error")
-                .and_then(|e| e.get("message"))
-                .and_then(|m| m.as_str())
-                .map(|s| s.to_string())
-        })
-        .unwrap_or_else(|| {
-            if body.is_empty() {
-                "request rejected".to_string()
-            } else {
-                body.chars().take(300).collect()
-            }
-        })
+    if let Ok(value) = serde_json::from_str::<Value>(body) {
+        // Most providers: { "error": { "message": "..." } }
+        if let Some(msg) = value
+            .get("error")
+            .and_then(|e| e.get("message"))
+            .and_then(|m| m.as_str())
+        {
+            return msg.to_string();
+        }
+        // Gemini sometimes returns an array wrapper.
+        if let Some(msg) = value
+            .get(0)
+            .and_then(|v| v.get("error"))
+            .and_then(|e| e.get("message"))
+            .and_then(|m| m.as_str())
+        {
+            return msg.to_string();
+        }
+    }
+    if body.is_empty() {
+        "request rejected".to_string()
+    } else {
+        body.chars().take(300).collect()
+    }
 }

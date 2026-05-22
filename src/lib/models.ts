@@ -1,41 +1,140 @@
-import type { ModelDef, ProviderId } from "../types";
+import type { ModelDef } from "../types";
+import { getProvider } from "./providers";
 
-/** Models Orion can route to. Add entries here to expose new options. */
+/** Models Orion can route to. Grouped by provider in the UI. */
 export const MODELS: ModelDef[] = [
+  // ---- Anthropic ----
   {
     id: "claude-opus-4-7",
     label: "Claude Opus 4.7",
-    provider: "anthropic",
+    providerId: "anthropic",
     apiName: "claude-opus-4-7",
     blurb: "Most capable — deep reasoning",
+    vision: true,
   },
   {
     id: "claude-sonnet-4-6",
     label: "Claude Sonnet 4.6",
-    provider: "anthropic",
+    providerId: "anthropic",
     apiName: "claude-sonnet-4-6",
     blurb: "Balanced speed and quality",
+    vision: true,
   },
   {
     id: "claude-haiku-4-5",
     label: "Claude Haiku 4.5",
-    provider: "anthropic",
+    providerId: "anthropic",
     apiName: "claude-haiku-4-5-20251001",
     blurb: "Fastest — everyday tasks",
+    vision: true,
   },
+
+  // ---- OpenAI ----
   {
     id: "gpt-4o",
     label: "GPT-4o",
-    provider: "openai",
+    providerId: "openai",
     apiName: "gpt-4o",
-    blurb: "OpenAI flagship multimodal",
+    blurb: "Flagship multimodal",
+    vision: true,
   },
   {
     id: "gpt-4o-mini",
     label: "GPT-4o mini",
-    provider: "openai",
+    providerId: "openai",
     apiName: "gpt-4o-mini",
-    blurb: "OpenAI — fast and economical",
+    blurb: "Fast and economical",
+    vision: true,
+  },
+
+  // ---- Google Gemini ----
+  {
+    id: "gemini-2.5-pro",
+    label: "Gemini 2.5 Pro",
+    providerId: "gemini",
+    apiName: "gemini-2.5-pro",
+    blurb: "Top reasoning, huge context",
+    vision: true,
+  },
+  {
+    id: "gemini-2.5-flash",
+    label: "Gemini 2.5 Flash",
+    providerId: "gemini",
+    apiName: "gemini-2.5-flash",
+    blurb: "Fast, balanced, multimodal",
+    vision: true,
+  },
+  {
+    id: "gemini-2.0-flash",
+    label: "Gemini 2.0 Flash",
+    providerId: "gemini",
+    apiName: "gemini-2.0-flash",
+    blurb: "Quick everyday multimodal",
+    vision: true,
+  },
+
+  // ---- OpenRouter ----
+  {
+    id: "or-deepseek-v3",
+    label: "DeepSeek V3",
+    providerId: "openrouter",
+    apiName: "deepseek/deepseek-chat",
+    blurb: "Strong open reasoning model",
+  },
+  {
+    id: "or-llama-3.3-70b",
+    label: "Llama 3.3 70B",
+    providerId: "openrouter",
+    apiName: "meta-llama/llama-3.3-70b-instruct",
+    blurb: "Meta's open flagship",
+  },
+  {
+    id: "or-qwen-vl-72b",
+    label: "Qwen2.5-VL 72B",
+    providerId: "openrouter",
+    apiName: "qwen/qwen2.5-vl-72b-instruct",
+    blurb: "Open vision-language model",
+    vision: true,
+  },
+
+  // ---- Moonshot · Kimi ----
+  {
+    id: "kimi-k2",
+    label: "Kimi K2",
+    providerId: "moonshot",
+    apiName: "kimi-k2-0905-preview",
+    blurb: "Agentic long-context model",
+  },
+  {
+    id: "moonshot-128k",
+    label: "Moonshot v1 128K",
+    providerId: "moonshot",
+    apiName: "moonshot-v1-128k",
+    blurb: "Very long context window",
+  },
+
+  // ---- Alibaba · Qwen ----
+  {
+    id: "qwen-max",
+    label: "Qwen Max",
+    providerId: "dashscope",
+    apiName: "qwen-max",
+    blurb: "Alibaba's most capable",
+  },
+  {
+    id: "qwen-plus",
+    label: "Qwen Plus",
+    providerId: "dashscope",
+    apiName: "qwen-plus",
+    blurb: "Balanced cost and quality",
+  },
+  {
+    id: "qwen-vl-max",
+    label: "Qwen VL Max",
+    providerId: "dashscope",
+    apiName: "qwen-vl-max",
+    blurb: "Vision-language analysis",
+    vision: true,
   },
 ];
 
@@ -45,7 +144,9 @@ export function getModel(id: string): ModelDef {
   return MODELS.find((m) => m.id === id) ?? MODELS[0];
 }
 
-export const PROVIDER_LABEL: Record<ProviderId, string> = {
-  anthropic: "Anthropic",
-  openai: "OpenAI",
-};
+/** Resolves a model id to everything the backend needs to call it. */
+export function resolveModel(id: string) {
+  const model = getModel(id);
+  const provider = getProvider(model.providerId);
+  return { model, provider };
+}

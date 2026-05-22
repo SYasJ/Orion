@@ -1,19 +1,30 @@
 import { invoke } from "@tauri-apps/api/core";
-import { listen, type UnlistenFn } from "@tauri-apps/api/event";
+import { emit, listen, type UnlistenFn } from "@tauri-apps/api/event";
 import type { AppSettings } from "../types";
 
 /** True when running inside the Tauri shell (vs. a plain browser tab). */
 export const IS_TAURI =
   typeof window !== "undefined" && "__TAURI_INTERNALS__" in window;
 
+export interface ChatImageDTO {
+  mime: string;
+  data: string;
+}
+
 export interface ChatMessageDTO {
   role: "user" | "assistant";
   content: string;
+  images: ChatImageDTO[];
 }
 
 export interface SendArgs {
   streamId: string;
+  /** Provider id — used to look up the API key. */
   provider: string;
+  /** API shape: "anthropic" | "openai" | "gemini". */
+  format: string;
+  /** Endpoint URL (chat completions, or API base for Gemini). */
+  endpoint: string;
   model: string;
   system: string;
   messages: ChatMessageDTO[];
@@ -33,6 +44,12 @@ export interface ErrorEvent {
   message: string;
 }
 
+/** Payload for promoting a Quick Ask exchange into a full conversation. */
+export interface PromoteEvent {
+  question: string;
+  answer: string;
+}
+
 export async function sendMessage(args: SendArgs): Promise<void> {
   if (!IS_TAURI) {
     throw new Error(
@@ -43,6 +60,8 @@ export async function sendMessage(args: SendArgs): Promise<void> {
     streamId: args.streamId,
     request: {
       provider: args.provider,
+      format: args.format,
+      endpoint: args.endpoint,
       model: args.model,
       system: args.system,
       messages: args.messages,
@@ -57,7 +76,7 @@ export async function cancelStream(streamId: string): Promise<void> {
 }
 
 export async function getSettings(): Promise<AppSettings> {
-  if (!IS_TAURI) return { anthropicApiKey: "", openaiApiKey: "" };
+  if (!IS_TAURI) return { keys: {} };
   return invoke<AppSettings>("get_settings");
 }
 
@@ -76,4 +95,13 @@ export function onDone(cb: (e: DoneEvent) => void): Promise<UnlistenFn> {
 
 export function onError(cb: (e: ErrorEvent) => void): Promise<UnlistenFn> {
   return listen<ErrorEvent>("stream://error", (e) => cb(e.payload));
+}
+
+/** Sends a Quick Ask exchange to the main window to become a conversation. */
+export async function promoteToConversation(e: PromoteEvent): Promise<void> {
+  await emit("quickask://promote", e);
+}
+
+export function onPromote(cb: (e: PromoteEvent) => void): Promise<UnlistenFn> {
+  return listen<PromoteEvent>("quickask://promote", (e) => cb(e.payload));
 }

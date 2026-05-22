@@ -106,3 +106,23 @@ export const LoaderIcon = (p: IconProps) => (
     <path d="M12 2v6M12 16v6M2 12h6M16 12h6" />
   </Base>
 );
+
+export const ImageIcon = (p: IconProps) => (
+  <Base {...p}>
+    <rect x="3" y="3" width="18" height="18" rx="2" />
+    <circle cx="9" cy="9" r="2" />
+    <path d="m21 15-4.5-4.5L7 21" />
+  </Base>
+);
+
+export const ArrowRightIcon = (p: IconProps) => (
+  <Base {...p}>
+    <path d="M5 12h14M13 5l7 7-7 7" />
+  </Base>
+);
+
+export const BoltIcon = (p: IconProps) => (
+  <Base {...p}>
+    <path d="M13 2 3 14h7l-1 8 10-12h-7l1-8z" />
+  </Base>
+);

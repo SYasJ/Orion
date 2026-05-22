@@ -12,6 +12,7 @@
   "app": {
     "windows": [
       {
+        "label": "main",
         "title": "Orion",
         "width": 1180,
         "height": 780,
@@ -19,6 +20,20 @@
         "minHeight": 540,
         "decorations": false,
         "transparent": true,
+        "center": true,
+        "theme": "Dark"
+      },
+      {
+        "label": "quickask",
+        "title": "Orion Quick Ask",
+        "width": 680,
+        "height": 104,
+        "resizable": false,
+        "decorations": false,
+        "transparent": true,
+        "visible": false,
+        "alwaysOnTop": true,
+        "skipTaskbar": true,
         "center": true,
         "theme": "Dark"
       }

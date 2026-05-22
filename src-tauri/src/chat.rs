@@ -11,17 +11,30 @@ use crate::{providers, settings};
 #[derive(Default, Clone)]
 pub struct StreamRegistry(pub Arc<Mutex<HashMap<String, Arc<AtomicBool>>>>);
 
+/// A base64-encoded image attached to a message, for vision models.
+#[derive(Debug, Clone, Deserialize)]
+pub struct ChatImage {
+    pub mime: String,
+    pub data: String,
+}
+
 #[derive(Debug, Clone, Deserialize)]
 pub struct ChatMessage {
     pub role: String,
     pub content: String,
+    #[serde(default)]
+    pub images: Vec<ChatImage>,
 }
 
 #[derive(Debug, Clone, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct ChatRequest {
-    /// "anthropic" or "openai".
+    /// Provider id — used to look up the API key.
     pub provider: String,
+    /// API shape: "anthropic", "openai" or "gemini".
+    pub format: String,
+    /// Endpoint URL (chat completions, or API base for Gemini).
+    pub endpoint: String,
     pub model: String,
     #[serde(default)]
     pub system: Option<String>,

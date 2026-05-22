@@ -1,16 +1,16 @@
-use serde::{Deserialize, Serialize};
+use std::collections::HashMap;
 use std::path::PathBuf;
+
+use serde::{Deserialize, Serialize};
 use tauri::{AppHandle, Manager};
 
 /// Persisted application settings. Stored as JSON in the OS app-config dir so
 /// API keys never live in the webview's localStorage.
 #[derive(Debug, Default, Clone, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
 pub struct Settings {
+    /// API key per provider id (e.g. "anthropic", "openai", "gemini").
     #[serde(default)]
-    pub anthropic_api_key: String,
-    #[serde(default)]
-    pub openai_api_key: String,
+    pub keys: HashMap<String, String>,
 }
 
 fn settings_path(app: &AppHandle) -> Result<PathBuf, String> {

@@ -11,13 +11,32 @@ a command palette, and a glassy dark UI built for daily use.
 ## Features
 
 - **Streaming chat** — tokens render live as the model produces them.
-- **Pluggable providers** — Claude (Anthropic) and GPT (OpenAI), switchable
-  per conversation from the model picker.
+- **6 providers, one app** — Anthropic, OpenAI, Google Gemini, OpenRouter,
+  Moonshot (Kimi) and Alibaba (Qwen), switchable per conversation.
+- **Vision** — attach images to vision-capable models (Claude, GPT-4o,
+  Gemini, Qwen-VL) for visual analysis.
+- **Quick Ask overlay** — summon Orion from anywhere with
+  `Ctrl/Cmd + Shift + Space`; promote any answer into a full conversation.
 - **Conversation history** — auto-titled, searchable, persisted locally.
 - **Command palette** — `Ctrl/Cmd + K` to jump between chats or run actions.
 - **Markdown + code** — full markdown rendering with syntax highlighting.
 - **System prompt** — customize Orion's behavior globally.
 - **Frameless, glassy UI** — custom title bar, aurora accents, smooth motion.
+
+## Providers & models
+
+| Provider          | API format   | Example models                          |
+| ----------------- | ------------ | --------------------------------------- |
+| Anthropic         | `anthropic`  | Claude Opus / Sonnet / Haiku            |
+| OpenAI            | `openai`     | GPT-4o, GPT-4o mini                     |
+| Google Gemini     | `gemini`     | Gemini 2.5 Pro / Flash, 2.0 Flash       |
+| OpenRouter        | `openai`     | DeepSeek V3, Llama 3.3, Qwen2.5-VL      |
+| Moonshot · Kimi   | `openai`     | Kimi K2, Moonshot v1 128K               |
+| Alibaba · Qwen    | `openai`     | Qwen Max / Plus / VL Max                |
+
+Most providers are OpenAI-compatible, so adding one is a single entry in
+`src/lib/providers.ts` plus its models in `src/lib/models.ts`. Gemini and
+Anthropic have dedicated request/response handling in `src-tauri/src/providers.rs`.
 
 ## Architecture
 
@@ -86,10 +105,9 @@ available inside the desktop shell.
 
 These are natural next steps to take Orion from MVP to polished product:
 
-- Global hotkey "quick ask" overlay (summon Orion from anywhere).
 - Local model support via Ollama.
-- Streaming markdown with per-code-block copy buttons.
+- Per-code-block copy buttons.
 - Per-conversation model + system prompt overrides.
-- Attachments and image input for multimodal models.
 - Token/cost usage display.
 - Conversation export (Markdown / JSON).
+- System tray icon so Orion stays resident for Quick Ask.
