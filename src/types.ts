@@ -27,6 +27,10 @@ export interface Conversation {
   id: string;
   title: string;
   messages: Message[];
+  /** Model used for this conversation (falls back to the app default). */
+  modelId: string;
+  /** System prompt for this conversation (falls back to the app default). */
+  systemPrompt: string;
   createdAt: number;
   updatedAt: number;
 }

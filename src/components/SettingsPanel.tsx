@@ -4,19 +4,23 @@ import { open as openUrl } from "@tauri-apps/plugin-shell";
 import { useStore } from "../store/store";
 import { IS_TAURI, getSettings, setSettings } from "../lib/bridge";
 import { PROVIDERS } from "../lib/providers";
+import { MODELS } from "../lib/models";
 import { CloseIcon } from "./Icons";
 
 interface Props {
   onClose: () => void;
 }
 
-/** Modal for per-provider API keys and the global system prompt. */
+/** Modal for API keys and the defaults new conversations inherit. */
 export function SettingsPanel({ onClose }: Props) {
-  const systemPrompt = useStore((s) => s.systemPrompt);
-  const setSystemPrompt = useStore((s) => s.setSystemPrompt);
+  const defaultSystemPrompt = useStore((s) => s.defaultSystemPrompt);
+  const setDefaultSystemPrompt = useStore((s) => s.setDefaultSystemPrompt);
+  const defaultModelId = useStore((s) => s.defaultModelId);
+  const setDefaultModel = useStore((s) => s.setDefaultModel);
 
   const [keys, setKeys] = useState<Record<string, string>>({});
-  const [prompt, setPrompt] = useState(systemPrompt);
+  const [prompt, setPrompt] = useState(defaultSystemPrompt);
+  const [model, setModel] = useState(defaultModelId);
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
@@ -27,7 +31,8 @@ export function SettingsPanel({ onClose }: Props) {
     setSaving(true);
     try {
       await setSettings({ keys });
-      setSystemPrompt(prompt);
+      setDefaultSystemPrompt(prompt);
+      setDefaultModel(model);
       onClose();
     } finally {
       setSaving(false);
@@ -97,16 +102,34 @@ export function SettingsPanel({ onClose }: Props) {
             run <code>ollama pull &lt;model&gt;</code>.
           </span>
 
-          <div className="settings-section-label">Behavior</div>
+          <div className="settings-section-label">Defaults for new chats</div>
           <div className="field">
-            <label>System prompt</label>
+            <label>Default model</label>
+            <select value={model} onChange={(e) => setModel(e.target.value)}>
+              {PROVIDERS.filter((p) => p.id !== "ollama").map((p) => (
+                <optgroup key={p.id} label={p.label}>
+                  {MODELS.filter((m) => m.providerId === p.id).map((m) => (
+                    <option key={m.id} value={m.id}>
+                      {m.label}
+                    </option>
+                  ))}
+                </optgroup>
+              ))}
+            </select>
+            <span className="hint">
+              New conversations and Quick Ask start with this model.
+            </span>
+          </div>
+          <div className="field">
+            <label>Default system prompt</label>
             <textarea
               value={prompt}
               onChange={(e) => setPrompt(e.target.value)}
               spellCheck={false}
             />
             <span className="hint">
-              Sets Orion's behavior for every conversation.
+              New conversations start with this. Edit any chat's prompt from
+              its header.
             </span>
           </div>
         </div>

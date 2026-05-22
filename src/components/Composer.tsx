@@ -29,12 +29,14 @@ export function Composer() {
   const streaming = useStore((s) => s.streaming);
   const send = useStore((s) => s.send);
   const stop = useStore((s) => s.stop);
-  const modelId = useStore((s) => s.modelId);
+  const supportsVision = useStore((s) => {
+    const conv = s.conversations.find((c) => c.id === s.activeId);
+    return getModel(conv?.modelId ?? s.defaultModelId).vision === true;
+  });
   const textRef = useRef<HTMLTextAreaElement>(null);
   const fileRef = useRef<HTMLInputElement>(null);
 
   const isStreaming = streaming !== null;
-  const supportsVision = getModel(modelId).vision === true;
   const canSend = text.trim().length > 0 || images.length > 0;
 
   const resize = () => {

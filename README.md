@@ -24,7 +24,8 @@ a command palette, and a glassy dark UI built for daily use.
 - **Local models** — run fully offline and private via Ollama, no API key;
   installed models are discovered live from the running Ollama instance.
 - **Markdown + code** — syntax highlighting with per-block copy buttons.
-- **System prompt** — customize Orion's behavior globally.
+- **Per-conversation settings** — each chat keeps its own model and system
+  prompt; configure the defaults new chats inherit.
 - **Frameless, glassy UI** — custom title bar, aurora accents, smooth motion.
 
 ## Providers & models
@@ -110,6 +111,5 @@ available inside the desktop shell.
 
 These are natural next steps to take Orion from MVP to polished product:
 
-- Per-conversation model + system prompt overrides.
 - Token/cost usage display.
 - Conversation export (Markdown / JSON).

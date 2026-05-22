@@ -8,7 +8,10 @@ import { CheckIcon, ChevronDownIcon } from "./Icons";
 
 /** Dropdown for picking the active model, grouped by provider. */
 export function ModelSwitcher() {
-  const modelId = useStore((s) => s.modelId);
+  const modelId = useStore((s) => {
+    const conv = s.conversations.find((c) => c.id === s.activeId);
+    return conv?.modelId ?? s.defaultModelId;
+  });
   const setModel = useStore((s) => s.setModel);
   const ollamaModels = useStore((s) => s.ollamaModels);
   const refreshOllama = useStore((s) => s.refreshOllamaModels);

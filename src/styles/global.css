@@ -950,7 +950,8 @@ textarea {
   color: var(--text-faint);
 }
 .field input,
-.field textarea {
+.field textarea,
+.field select {
   background: var(--bg-0);
   border: 1px solid var(--border);
   border-radius: var(--radius-sm);
@@ -959,8 +960,12 @@ textarea {
   outline: none;
   transition: border-color 0.14s, box-shadow 0.14s;
 }
+.field select {
+  cursor: pointer;
+}
 .field input:focus,
-.field textarea:focus {
+.field textarea:focus,
+.field select:focus {
   border-color: rgba(124, 140, 255, 0.5);
   box-shadow: 0 0 0 3px var(--accent-soft);
 }
@@ -1253,6 +1258,59 @@ textarea {
   gap: 8px;
   padding: 10px 14px;
   border-top: 1px solid var(--border);
+}
+
+/* conversation settings popover */
+.conv-settings {
+  position: relative;
+}
+.conv-pop {
+  position: absolute;
+  top: calc(100% + 6px);
+  right: 0;
+  width: 320px;
+  z-index: 30;
+  background: var(--bg-2);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-pop);
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.conv-pop-label {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--text-faint);
+  font-weight: 600;
+}
+.conv-pop-textarea {
+  background: var(--bg-0);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 9px 11px;
+  font-size: 12.5px;
+  line-height: 1.55;
+  color: inherit;
+  outline: none;
+  resize: vertical;
+  min-height: 96px;
+  transition: border-color 0.14s, box-shadow 0.14s;
+}
+.conv-pop-textarea:focus {
+  border-color: rgba(124, 140, 255, 0.5);
+  box-shadow: 0 0 0 3px var(--accent-soft);
+}
+.conv-pop-hint {
+  font-size: 11px;
+  color: var(--text-faint);
+  line-height: 1.45;
+}
+.conv-pop-hint strong {
+  color: var(--text-dim);
+  font-weight: 600;
 }
 
 /* utility */

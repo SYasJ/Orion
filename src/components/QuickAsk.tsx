@@ -32,7 +32,7 @@ export function QuickAsk() {
   const inputRef = useRef<HTMLInputElement>(null);
 
   const expanded = question.length > 0;
-  const modelId = useStore((s) => s.modelId);
+  const modelId = useStore((s) => s.defaultModelId);
 
   // Grow/shrink the window to match content.
   useEffect(() => {
@@ -98,7 +98,7 @@ export function QuickAsk() {
   const ask = async () => {
     const q = query.trim();
     if (!q || busy) return;
-    const { model, provider } = resolveModel(useStore.getState().modelId);
+    const { model, provider } = resolveModel(useStore.getState().defaultModelId);
     const streamId = crypto.randomUUID();
     streamRef.current = streamId;
     setQuestion(q);
@@ -113,7 +113,7 @@ export function QuickAsk() {
         endpoint: provider.endpoint,
         requiresKey: !provider.keyless,
         model: model.apiName,
-        system: useStore.getState().systemPrompt,
+        system: useStore.getState().defaultSystemPrompt,
         messages: [{ role: "user", content: q, images: [] }],
       });
     } catch (e) {

@@ -4,6 +4,7 @@ import { MessageBubble } from "./MessageBubble";
 import { Composer } from "./Composer";
 import { EmptyState } from "./EmptyState";
 import { ModelSwitcher } from "./ModelSwitcher";
+import { ConversationSettings } from "./ConversationSettings";
 
 /** The main conversation pane: header, message list, and composer. */
 export function ChatView() {
@@ -32,6 +33,7 @@ export function ChatView() {
         </div>
         <div className="chat-header-spacer" />
         <ModelSwitcher />
+        <ConversationSettings />
       </div>
 
       <div className="scroll-area" ref={scrollRef}>

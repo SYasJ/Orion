@@ -13,8 +13,10 @@ interface StreamState {
 interface OrionStore {
   conversations: Conversation[];
   activeId: string | null;
-  modelId: string;
-  systemPrompt: string;
+  /** Model new conversations inherit. */
+  defaultModelId: string;
+  /** System prompt new conversations inherit. */
+  defaultSystemPrompt: string;
   streaming: StreamState | null;
   /** Live list of models installed in local Ollama (not persisted). */
   ollamaModels: string[];
@@ -24,8 +26,12 @@ interface OrionStore {
   selectConversation: (id: string) => void;
   deleteConversation: (id: string) => void;
   renameConversation: (id: string, title: string) => void;
+
+  /** Sets the model — for the active conversation, or the default if none. */
   setModel: (id: string) => void;
-  setSystemPrompt: (prompt: string) => void;
+  setDefaultModel: (id: string) => void;
+  setDefaultSystemPrompt: (prompt: string) => void;
+  setConversationSystemPrompt: (prompt: string) => void;
 
   send: (text: string, attachments?: ImageAttachment[]) => Promise<void>;
   stop: () => Promise<void>;
@@ -47,12 +53,14 @@ function deriveTitle(text: string): string {
   return firstLine.length > 48 ? `${firstLine.slice(0, 48)}…` : firstLine;
 }
 
-function freshConversation(): Conversation {
+function freshConversation(modelId: string, systemPrompt: string): Conversation {
   const now = Date.now();
   return {
     id: crypto.randomUUID(),
     title: "New chat",
     messages: [],
+    modelId,
+    systemPrompt,
     createdAt: now,
     updatedAt: now,
   };
@@ -63,8 +71,8 @@ export const useStore = create<OrionStore>()(
     (set, get) => ({
       conversations: [],
       activeId: null,
-      modelId: DEFAULT_MODEL_ID,
-      systemPrompt: DEFAULT_SYSTEM_PROMPT,
+      defaultModelId: DEFAULT_MODEL_ID,
+      defaultSystemPrompt: DEFAULT_SYSTEM_PROMPT,
       streaming: null,
       ollamaModels: [],
 
@@ -77,7 +85,10 @@ export const useStore = create<OrionStore>()(
       },
 
       newConversation: () => {
-        const conv = freshConversation();
+        const conv = freshConversation(
+          get().defaultModelId,
+          get().defaultSystemPrompt,
+        );
         set((s) => ({
           conversations: [conv, ...s.conversations],
           activeId: conv.id,
@@ -102,8 +113,25 @@ export const useStore = create<OrionStore>()(
           ),
         })),
 
-      setModel: (id) => set({ modelId: id }),
-      setSystemPrompt: (prompt) => set({ systemPrompt: prompt }),
+      setModel: (id) =>
+        set((s) => {
+          if (!s.activeId) return { defaultModelId: id };
+          return {
+            conversations: s.conversations.map((c) =>
+              c.id === s.activeId ? { ...c, modelId: id } : c,
+            ),
+          };
+        }),
+
+      setDefaultModel: (id) => set({ defaultModelId: id }),
+      setDefaultSystemPrompt: (prompt) => set({ defaultSystemPrompt: prompt }),
+
+      setConversationSystemPrompt: (prompt) =>
+        set((s) => ({
+          conversations: s.conversations.map((c) =>
+            c.id === s.activeId ? { ...c, systemPrompt: prompt } : c,
+          ),
+        })),
 
       send: async (raw, attachments) => {
         const text = raw.trim();
@@ -145,7 +173,9 @@ export const useStore = create<OrionStore>()(
         }));
 
         const conv = get().conversations.find((c) => c.id === convId)!;
-        const { model, provider } = resolveModel(get().modelId);
+        const { model, provider } = resolveModel(
+          conv.modelId ?? get().defaultModelId,
+        );
         const history = conv.messages
           .filter((m) => m.id !== assistantMsg.id && !m.error)
           .map((m) => ({
@@ -165,7 +195,7 @@ export const useStore = create<OrionStore>()(
             endpoint: provider.endpoint,
             requiresKey: !provider.keyless,
             model: model.apiName,
-            system: get().systemPrompt,
+            system: conv.systemPrompt ?? get().defaultSystemPrompt,
             messages: history,
           });
         } catch (e) {
@@ -185,6 +215,8 @@ export const useStore = create<OrionStore>()(
         const conv: Conversation = {
           id: crypto.randomUUID(),
           title: deriveTitle(question),
+          modelId: get().defaultModelId,
+          systemPrompt: get().defaultSystemPrompt,
           messages: [
             {
               id: crypto.randomUUID(),
@@ -263,11 +295,12 @@ export const useStore = create<OrionStore>()(
     }),
     {
       name: "orion-store",
+      version: 1,
       partialize: (s) => ({
         conversations: s.conversations,
         activeId: s.activeId,
-        modelId: s.modelId,
-        systemPrompt: s.systemPrompt,
+        defaultModelId: s.defaultModelId,
+        defaultSystemPrompt: s.defaultSystemPrompt,
       }),
     },
   ),
