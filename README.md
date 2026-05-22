@@ -26,6 +26,8 @@ a command palette, and a glassy dark UI built for daily use.
 - **Markdown + code** — syntax highlighting with per-block copy buttons.
 - **Per-conversation settings** — each chat keeps its own model and system
   prompt; configure the defaults new chats inherit.
+- **Token usage** — input/output token counts per reply and a per-chat total.
+- **Export** — save any conversation as Markdown or JSON.
 - **Frameless, glassy UI** — custom title bar, aurora accents, smooth motion.
 
 ## Providers & models
@@ -111,5 +113,5 @@ available inside the desktop shell.
 
 These are natural next steps to take Orion from MVP to polished product:
 
-- Token/cost usage display.
-- Conversation export (Markdown / JSON).
+- Streaming-aware retry / regenerate for a failed turn.
+- Conversation search across message bodies, not just titles.

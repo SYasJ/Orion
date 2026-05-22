@@ -132,3 +132,15 @@ export const SlidersIcon = (p: IconProps) => (
     <path d="M21 4h-7M10 4H3M21 12h-9M8 12H3M21 20h-5M12 20H3M14 2v4M8 10v4M16 18v4" />
   </Base>
 );
+
+export const CodeIcon = (p: IconProps) => (
+  <Base {...p}>
+    <path d="m16 18 6-6-6-6M8 6l-6 6 6 6" />
+  </Base>
+);
+
+export const ListIcon = (p: IconProps) => (
+  <Base {...p}>
+    <path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01" />
+  </Base>
+);

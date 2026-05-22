@@ -13,6 +13,12 @@ export interface ImageAttachment {
   name: string;
 }
 
+/** Token counts reported by the provider for an assistant turn. */
+export interface TokenUsage {
+  input: number;
+  output: number;
+}
+
 export interface Message {
   id: string;
   role: Role;
@@ -21,6 +27,8 @@ export interface Message {
   createdAt: number;
   /** Set when an assistant turn failed to complete. */
   error?: boolean;
+  /** Token usage for an assistant turn, once the provider reports it. */
+  usage?: TokenUsage;
 }
 
 export interface Conversation {

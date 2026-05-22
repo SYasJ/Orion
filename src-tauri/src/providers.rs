@@ -15,6 +15,14 @@ struct ChunkPayload {
     delta: String,
 }
 
+#[derive(Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+struct UsagePayload {
+    id: String,
+    input_tokens: u32,
+    output_tokens: u32,
+}
+
 /// Streams a chat completion from the selected provider, emitting each text
 /// delta to the frontend as a `stream://chunk` event.
 pub async fn stream_chat(
@@ -89,10 +97,12 @@ pub async fn stream_chat(
 
     let mut stream = response.bytes_stream();
     let mut buffer: Vec<u8> = Vec::new();
+    let mut input_tokens: u32 = 0;
+    let mut output_tokens: u32 = 0;
 
-    while let Some(chunk) = stream.next().await {
+    'outer: while let Some(chunk) = stream.next().await {
         if cancel.load(Ordering::SeqCst) {
-            return Ok(());
+            break 'outer;
         }
         let bytes = chunk.map_err(|e| format!("Stream error: {e}"))?;
         buffer.extend_from_slice(&bytes);
@@ -111,7 +121,7 @@ pub async fn stream_chat(
                 continue;
             }
             if data == "[DONE]" {
-                return Ok(());
+                break 'outer;
             }
             if let Ok(value) = serde_json::from_str::<Value>(data) {
                 if let Some(delta) = extract_delta(format, &value) {
@@ -125,8 +135,20 @@ pub async fn stream_chat(
                         );
                     }
                 }
+                update_usage(format, &value, &mut input_tokens, &mut output_tokens);
             }
         }
+    }
+
+    if input_tokens > 0 || output_tokens > 0 {
+        let _ = app.emit(
+            "stream://usage",
+            UsagePayload {
+                id: stream_id.to_string(),
+                input_tokens,
+                output_tokens,
+            },
+        );
     }
 
     Ok(())
@@ -209,6 +231,7 @@ fn openai_body(request: &ChatRequest) -> Value {
     json!({
         "model": request.model,
         "stream": true,
+        "stream_options": { "include_usage": true },
         "messages": messages,
     })
 }
@@ -290,6 +313,53 @@ fn extract_delta(format: &str, value: &Value) -> Option<String> {
                 .as_str()?
                 .to_string(),
         ),
+    }
+}
+
+/// Accumulates token usage from an SSE data object. Each provider reports it
+/// differently; fields are overwritten as later events refine the counts.
+fn update_usage(format: &str, value: &Value, input: &mut u32, output: &mut u32) {
+    let read = |v: &Value, key: &str| v.get(key).and_then(|n| n.as_u64()).map(|n| n as u32);
+    match format {
+        "anthropic" => match value.get("type").and_then(|t| t.as_str()) {
+            Some("message_start") => {
+                if let Some(u) = value.get("message").and_then(|m| m.get("usage")) {
+                    if let Some(n) = read(u, "input_tokens") {
+                        *input = n;
+                    }
+                    if let Some(n) = read(u, "output_tokens") {
+                        *output = n;
+                    }
+                }
+            }
+            Some("message_delta") => {
+                if let Some(n) = value.get("usage").and_then(|u| read(u, "output_tokens")) {
+                    *output = n;
+                }
+            }
+            _ => {}
+        },
+        "gemini" => {
+            if let Some(u) = value.get("usageMetadata") {
+                if let Some(n) = read(u, "promptTokenCount") {
+                    *input = n;
+                }
+                if let Some(n) = read(u, "candidatesTokenCount") {
+                    *output = n;
+                }
+            }
+        }
+        // openai and OpenAI-compatible providers
+        _ => {
+            if let Some(u) = value.get("usage").filter(|u| u.is_object()) {
+                if let Some(n) = read(u, "prompt_tokens") {
+                    *input = n;
+                }
+                if let Some(n) = read(u, "completion_tokens") {
+                    *output = n;
+                }
+            }
+        }
     }
 }
 

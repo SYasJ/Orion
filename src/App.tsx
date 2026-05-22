@@ -6,13 +6,14 @@ import { ChatView } from "./components/ChatView";
 import { CommandPalette } from "./components/CommandPalette";
 import { SettingsPanel } from "./components/SettingsPanel";
 import { useStore } from "./store/store";
-import { onChunk, onDone, onError, onPromote } from "./lib/bridge";
+import { onChunk, onDone, onError, onPromote, onUsage } from "./lib/bridge";
 
 export default function App() {
   const [paletteOpen, setPaletteOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
 
   const pushDelta = useStore((s) => s.pushDelta);
+  const recordUsage = useStore((s) => s.recordUsage);
   const endStream = useStore((s) => s.endStream);
   const failStream = useStore((s) => s.failStream);
   const importConversation = useStore((s) => s.importConversation);
@@ -23,6 +24,7 @@ export default function App() {
     const handles: UnlistenFn[] = [];
     Promise.all([
       onChunk((e) => pushDelta(e.id, e.delta)),
+      onUsage((e) => recordUsage(e.id, e.inputTokens, e.outputTokens)),
       onDone((e) => endStream(e.id)),
       onError((e) => failStream(e.id, e.message)),
       onPromote((e) => importConversation(e.question, e.answer)),
@@ -34,7 +36,7 @@ export default function App() {
       active = false;
       handles.forEach((f) => f());
     };
-  }, [pushDelta, endStream, failStream, importConversation]);
+  }, [pushDelta, recordUsage, endStream, failStream, importConversation]);
 
   // Discover local Ollama models on startup.
   useEffect(() => {

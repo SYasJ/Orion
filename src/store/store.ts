@@ -39,6 +39,7 @@ interface OrionStore {
 
   // Internal — invoked by the global stream-event listeners.
   pushDelta: (streamId: string, delta: string) => void;
+  recordUsage: (streamId: string, input: number, output: number) => void;
   endStream: (streamId: string) => void;
   failStream: (streamId: string, message: string) => void;
 }
@@ -252,6 +253,25 @@ export const useStore = create<OrionStore>()(
                   messages: c.messages.map((m) =>
                     m.id === stream.messageId
                       ? { ...m, content: m.content + delta }
+                      : m,
+                  ),
+                }
+              : c,
+          ),
+        }));
+      },
+
+      recordUsage: (streamId, input, output) => {
+        const stream = get().streaming;
+        if (!stream || stream.streamId !== streamId) return;
+        set((s) => ({
+          conversations: s.conversations.map((c) =>
+            c.id === stream.conversationId
+              ? {
+                  ...c,
+                  messages: c.messages.map((m) =>
+                    m.id === stream.messageId
+                      ? { ...m, usage: { input, output } }
                       : m,
                   ),
                 }

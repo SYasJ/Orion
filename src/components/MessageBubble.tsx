@@ -52,6 +52,12 @@ function MessageBubbleImpl({ message, streaming }: Props) {
             </>
           )}
         </div>
+        {!isUser && message.usage && !streaming && (
+          <div className="msg-usage" title="Tokens reported by the provider">
+            {message.usage.input.toLocaleString()} in ·{" "}
+            {message.usage.output.toLocaleString()} out
+          </div>
+        )}
       </div>
     </motion.div>
   );

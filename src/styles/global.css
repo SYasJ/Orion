@@ -795,6 +795,10 @@ textarea {
   color: var(--text-dim);
   max-width: 380px;
 }
+.empty p strong {
+  color: var(--text);
+  font-weight: 600;
+}
 
 .suggestions {
   display: grid;
@@ -805,6 +809,9 @@ textarea {
   max-width: 520px;
 }
 .suggestion {
+  display: flex;
+  align-items: flex-start;
+  gap: 11px;
   text-align: left;
   padding: 12px 14px;
   border-radius: var(--radius);
@@ -816,6 +823,24 @@ textarea {
   background: var(--surface-hover);
   border-color: var(--border-strong);
   transform: translateY(-2px);
+}
+.suggestion-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  flex-shrink: 0;
+  border-radius: 9px;
+  background: var(--accent-soft);
+  color: var(--accent);
+}
+.suggestion:hover .suggestion-icon {
+  background: var(--accent-grad);
+  color: #0b0c12;
+}
+.suggestion-text {
+  min-width: 0;
 }
 .suggestion-title {
   font-weight: 600;
@@ -1311,6 +1336,37 @@ textarea {
 .conv-pop-hint strong {
   color: var(--text-dim);
   font-weight: 600;
+}
+.conv-pop-divider {
+  height: 1px;
+  background: var(--border);
+  margin: 2px 0;
+}
+.conv-pop-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.conv-pop-value {
+  font-size: 12.5px;
+  font-variant-numeric: tabular-nums;
+  color: var(--text);
+  font-weight: 600;
+}
+.conv-pop-actions {
+  display: flex;
+  gap: 8px;
+}
+.conv-pop-actions .btn {
+  flex: 1;
+}
+
+.msg-usage {
+  margin-top: 7px;
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+  color: var(--text-faint);
+  letter-spacing: 0.01em;
 }
 
 /* utility */

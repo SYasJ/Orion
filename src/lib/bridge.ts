@@ -47,6 +47,12 @@ export interface ErrorEvent {
   message: string;
 }
 
+export interface UsageEvent {
+  id: string;
+  inputTokens: number;
+  outputTokens: number;
+}
+
 /** Payload for promoting a Quick Ask exchange into a full conversation. */
 export interface PromoteEvent {
   question: string;
@@ -106,6 +112,10 @@ export function onDone(cb: (e: DoneEvent) => void): Promise<UnlistenFn> {
 
 export function onError(cb: (e: ErrorEvent) => void): Promise<UnlistenFn> {
   return listen<ErrorEvent>("stream://error", (e) => cb(e.payload));
+}
+
+export function onUsage(cb: (e: UsageEvent) => void): Promise<UnlistenFn> {
+  return listen<UsageEvent>("stream://usage", (e) => cb(e.payload));
 }
 
 /** Sends a Quick Ask exchange to the main window to become a conversation. */
