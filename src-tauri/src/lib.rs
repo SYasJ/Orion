@@ -1,4 +1,5 @@
 mod chat;
+mod ollama;
 mod providers;
 mod settings;
 
@@ -30,6 +31,7 @@ pub fn run() {
             chat::cancel_stream,
             settings::get_settings,
             settings::set_settings,
+            ollama::list_ollama_models,
         ])
         .setup(|app| {
             let handle = app.handle();

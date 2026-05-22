@@ -1,6 +1,7 @@
 import { invoke } from "@tauri-apps/api/core";
 import { emit, listen, type UnlistenFn } from "@tauri-apps/api/event";
 import type { AppSettings } from "../types";
+import { getProvider } from "./providers";
 
 /** True when running inside the Tauri shell (vs. a plain browser tab). */
 export const IS_TAURI =
@@ -86,6 +87,13 @@ export async function getSettings(): Promise<AppSettings> {
 export async function setSettings(settings: AppSettings): Promise<void> {
   if (!IS_TAURI) return;
   await invoke("set_settings", { settings });
+}
+
+/** Lists models installed in the local Ollama instance. */
+export async function listOllamaModels(): Promise<string[]> {
+  if (!IS_TAURI) return [];
+  const host = getProvider("ollama").endpoint.replace(/\/v1\/.*$/, "");
+  return invoke<string[]>("list_ollama_models", { host });
 }
 
 export function onChunk(cb: (e: ChunkEvent) => void): Promise<UnlistenFn> {

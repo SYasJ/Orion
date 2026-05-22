@@ -136,42 +136,32 @@ export const MODELS: ModelDef[] = [
     blurb: "Vision-language analysis",
     vision: true,
   },
-
-  // ---- Ollama (local) — require `ollama pull <model>` first ----
-  {
-    id: "ollama-llama3.2",
-    label: "Llama 3.2",
-    providerId: "ollama",
-    apiName: "llama3.2",
-    blurb: "Local — run `ollama pull llama3.2`",
-  },
-  {
-    id: "ollama-qwen2.5",
-    label: "Qwen 2.5",
-    providerId: "ollama",
-    apiName: "qwen2.5",
-    blurb: "Local — run `ollama pull qwen2.5`",
-  },
-  {
-    id: "ollama-deepseek-r1",
-    label: "DeepSeek R1",
-    providerId: "ollama",
-    apiName: "deepseek-r1",
-    blurb: "Local reasoning — `ollama pull deepseek-r1`",
-  },
-  {
-    id: "ollama-llava",
-    label: "LLaVA",
-    providerId: "ollama",
-    apiName: "llava",
-    blurb: "Local vision — `ollama pull llava`",
-    vision: true,
-  },
 ];
 
 export const DEFAULT_MODEL_ID = "claude-sonnet-4-6";
 
+/** Ollama model ids carry the prefix below so they can be resolved without a
+ *  static registry — the rest of the id is the live model name. */
+export const OLLAMA_PREFIX = "ollama:";
+
+const OLLAMA_VISION = /llava|vision|-vl\b|bakllava|moondream/;
+
+/** Builds a ModelDef from a live Ollama model name (e.g. "llava:latest"). */
+export function ollamaModel(name: string): ModelDef {
+  return {
+    id: `${OLLAMA_PREFIX}${name}`,
+    label: name,
+    providerId: "ollama",
+    apiName: name,
+    blurb: "Local via Ollama",
+    vision: OLLAMA_VISION.test(name.toLowerCase()),
+  };
+}
+
 export function getModel(id: string): ModelDef {
+  if (id.startsWith(OLLAMA_PREFIX)) {
+    return ollamaModel(id.slice(OLLAMA_PREFIX.length));
+  }
   return MODELS.find((m) => m.id === id) ?? MODELS[0];
 }
 

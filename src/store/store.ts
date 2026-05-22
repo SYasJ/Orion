@@ -2,7 +2,7 @@ import { create } from "zustand";
 import { persist } from "zustand/middleware";
 import type { Conversation, ImageAttachment, Message } from "../types";
 import { DEFAULT_MODEL_ID, resolveModel } from "../lib/models";
-import { cancelStream, sendMessage } from "../lib/bridge";
+import { cancelStream, listOllamaModels, sendMessage } from "../lib/bridge";
 
 interface StreamState {
   conversationId: string;
@@ -16,7 +16,10 @@ interface OrionStore {
   modelId: string;
   systemPrompt: string;
   streaming: StreamState | null;
+  /** Live list of models installed in local Ollama (not persisted). */
+  ollamaModels: string[];
 
+  refreshOllamaModels: () => Promise<void>;
   newConversation: () => string;
   selectConversation: (id: string) => void;
   deleteConversation: (id: string) => void;
@@ -63,6 +66,15 @@ export const useStore = create<OrionStore>()(
       modelId: DEFAULT_MODEL_ID,
       systemPrompt: DEFAULT_SYSTEM_PROMPT,
       streaming: null,
+      ollamaModels: [],
+
+      refreshOllamaModels: async () => {
+        try {
+          set({ ollamaModels: await listOllamaModels() });
+        } catch {
+          set({ ollamaModels: [] });
+        }
+      },
 
       newConversation: () => {
         const conv = freshConversation();

@@ -1,14 +1,17 @@
 import { useEffect, useRef, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useStore } from "../store/store";
-import { MODELS, getModel } from "../lib/models";
+import { MODELS, getModel, ollamaModel } from "../lib/models";
 import { PROVIDERS } from "../lib/providers";
+import type { ModelDef } from "../types";
 import { CheckIcon, ChevronDownIcon } from "./Icons";
 
 /** Dropdown for picking the active model, grouped by provider. */
 export function ModelSwitcher() {
   const modelId = useStore((s) => s.modelId);
   const setModel = useStore((s) => s.setModel);
+  const ollamaModels = useStore((s) => s.ollamaModels);
+  const refreshOllama = useStore((s) => s.refreshOllamaModels);
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
   const current = getModel(modelId);
@@ -22,9 +25,21 @@ export function ModelSwitcher() {
     return () => window.removeEventListener("mousedown", close);
   }, [open]);
 
+  const toggle = () => {
+    setOpen((v) => {
+      if (!v) void refreshOllama();
+      return !v;
+    });
+  };
+
+  const modelsFor = (providerId: string): ModelDef[] => {
+    if (providerId === "ollama") return ollamaModels.map(ollamaModel);
+    return MODELS.filter((m) => m.providerId === providerId);
+  };
+
   return (
     <div className="model-switch" ref={ref}>
-      <button className="model-trigger" onClick={() => setOpen((v) => !v)}>
+      <button className="model-trigger" onClick={toggle}>
         <span className="model-dot" />
         {current.label}
         <ChevronDownIcon size={13} />
@@ -40,11 +55,17 @@ export function ModelSwitcher() {
             transition={{ duration: 0.13, ease: "easeOut" }}
           >
             {PROVIDERS.map((provider) => {
-              const models = MODELS.filter((m) => m.providerId === provider.id);
-              if (models.length === 0) return null;
+              const models = modelsFor(provider.id);
+              const isOllama = provider.id === "ollama";
+              if (models.length === 0 && !isOllama) return null;
               return (
                 <div key={provider.id}>
                   <div className="model-group-label">{provider.label}</div>
+                  {models.length === 0 && isOllama && (
+                    <div className="model-empty-row">
+                      No local models found — is Ollama running?
+                    </div>
+                  )}
                   {models.map((m) => (
                     <button
                       key={m.id}

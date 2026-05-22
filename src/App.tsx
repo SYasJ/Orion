@@ -36,6 +36,11 @@ export default function App() {
     };
   }, [pushDelta, endStream, failStream, importConversation]);
 
+  // Discover local Ollama models on startup.
+  useEffect(() => {
+    void useStore.getState().refreshOllamaModels();
+  }, []);
+
   // Global shortcuts.
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
